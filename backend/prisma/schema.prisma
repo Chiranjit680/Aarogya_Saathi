@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // or "mysql", "sqlite", etc.
+  url      = env("DATABASE_URL")
+}
+
+model Doctor {
+  id             Int            @id @default(autoincrement())
+  firstName      String
+  lastName       String
+  email          String         @unique
+  password       String
+  specialty      String
+  medicalLicense String         @unique  
+  gender         Gender         @default(PREFER_NOT_TO_SAY)
+  slots          Slot[]
+  appointments   Appointment[]
+  reviews        Review[]
+  prescriptions  Prescription[]
+}
+
+model Patient {
+  id             Int            @id @default(autoincrement())
+  firstName      String
+  lastName       String
+  email          String         @unique
+  password       String
+  dob            DateTime?
+  gender         Gender         @default(PREFER_NOT_TO_SAY)
+  mdeicalHistory String?
+  appointments   Appointment[]
+  reviews        Review[]
+  prescriptions  Prescription[]
+}
+
+model Admin {
+  id        Int    @id @default(autoincrement())
+  firstName String
+  lastName  String
+  email     String @unique
+  password  String
+}
+
+model Slot {
+  id             Int           @id @default(autoincrement())
+  doctorId       Int
+  startTime      DateTime
+  endTime        DateTime
+  maxPatients    Int
+  bookedPatients Int           @default(0)
+  isAvailable    Boolean       @default(true)
+  doctor         Doctor        @relation(fields: [doctorId], references: [id])
+  appointments   Appointment[]
+}
+
+model Appointment {
+  id           Int               @id @default(autoincrement())
+  patientId    Int
+  doctorId     Int
+  slotId       Int
+  date         DateTime
+  status       AppointmentStatus @default(SCHEDULED)
+  patient      Patient           @relation(fields: [patientId], references: [id])
+  doctor       Doctor            @relation(fields: [doctorId], references: [id])
+  slot         Slot              @relation(fields: [slotId], references: [id])
+  review       Review?
+  prescription Prescription[]
+}
+
+model Prescription {
+  id            Int         @id @default(autoincrement())
+  appointmentId Int         
+  doctorId      Int
+  patientId     Int
+  issuedAt      DateTime    @default(now())
+  medications   String? // You can structure this as a JSON or comma-separated string if needed
+  notes         String?
+  title         String
+  tests         String?
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  doctor        Doctor      @relation(fields: [doctorId], references: [id])
+  patient       Patient     @relation(fields: [patientId], references: [id])
+}
+
+model Review {
+  id            Int      @id @default(autoincrement())
+  patientId     Int
+  doctorId      Int
+  appointmentId Int      @unique
+  rating        Int      @default(5)
+  comment       String?
+  createdAt     DateTime @default(now())
+
+  patient     Patient     @relation(fields: [patientId], references: [id])
+  doctor      Doctor      @relation(fields: [doctorId], references: [id])
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
